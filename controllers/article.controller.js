@@ -16,22 +16,6 @@ const postArticle = async (req, res, next) => {
     }
 }
 
-// const getArticles = async (req, res, next) => {
-
-//     const {limit = 10, page = 1} = req.query
-//     const skip = (page - 1) * limit;
-//     try {
-//         const articles = await articleModel.find({}).sort({createdAt: -1}).limit(limit).skip(skip)
-//         return res.status(200).json({
-//             message: "Article fetched",
-//             data: articles
-//         })
-//     } catch (error) {
-//         console.error(error);
-//         next(error);
-//     }
-// }
-
 const getArticles = async (req, res, next) => {
 
     const { search, limit = 10, page = 1 } = req.query;
@@ -42,7 +26,7 @@ const getArticles = async (req, res, next) => {
     if (req.query.category) {
         query.category = req.query.category;
     }
-    
+
     if (search) {
         query = {
             $or: [
