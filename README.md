@@ -2,6 +2,25 @@
 
 A RESTful Blog API built with Node.js, Express.js, MongoDB, and Mongoose. The API enables clients to manage blog articles through CRUD operations, search and filter content, paginate results, and add comments to articles. It follows REST principles and demonstrates common backend development practices such as request validation, middleware, and centralized error handling.
 
+## Live Demo
+
+### Example Endpoints
+
+- **Get all articles**  
+  https://blog-api-jf07.onrender.com/api/articles
+
+- **Search articles**  
+  https://blog-api-jf07.onrender.com/api/articles?search=jimmy
+
+- **Filter by category**  
+  https://blog-api-jf07.onrender.com/api/articles?category=Technology
+
+- **Pagination**  
+  https://blog-api-jf07.onrender.com/api/articles?page=1&limit=5
+
+- **Combined query**  
+  https://blog-api-jf07.onrender.com/api/articles?category=Technology&search=jimmy&page=1&limit=5
+  
 ## Features
 
 - Create new blog articles
