@@ -1,0 +1,58 @@
+const mongoose = require('mongoose');
+
+const articleSchema = new mongoose.Schema({
+    title: {
+        type: String,
+        required: true,
+        minLength: 5,
+        trim: true
+    },
+    content: {
+        type: String,
+        required: true,
+        minLength: 20,
+        trim: true
+    },
+    author: {
+        type: String,
+        default: "Guest",
+        trim: true
+    },
+    category: {
+        type: String,
+        required: true,
+        enum: [
+            "Technology",
+            "Programming",
+            "Business",
+            "Education",
+            "Health",
+            "Lifestyle",
+            "Sports",
+            "Others"
+        ]
+    },
+    comments: [
+        {
+            author: {
+                type: String,
+                required: true,
+                trim: true
+            },
+            comment: {
+                type: String,
+                required: true,
+                minLength: 2,
+                trim: true
+            },
+            createdAt: {
+                type: Date,
+                default: Date.now
+            }
+        }
+    ]
+}, { timestamps: true });
+
+const Article = mongoose.model("Article", articleSchema);
+
+module.exports = Article;
