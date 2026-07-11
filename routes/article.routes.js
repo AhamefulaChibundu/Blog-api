@@ -7,20 +7,21 @@ const {
     postArticle,
     updateArticle,
     addComment,
-    deleteArticle} = require('../controllers/article.controller')
+    deleteArticle} = require('../controllers/article.controller');
+const requireAuth = require('../middlewares/requireAuth');
 
 const router = express.Router();
 
-router.post('/articles', validate(postValidator), postArticle)
+router.post('/articles', validate(postValidator), requireAuth, postArticle)
 
-router.get('/articles', getArticles)
+router.get('/articles', requireAuth, getArticles)
 
-router.get('/articles/:id', getArticleById)
+router.get('/articles/:id', requireAuth, getArticleById)
 
-router.put('/articles/:id', validate(putValidator),updateArticle)
+router.put('/articles/:id', validate(putValidator), requireAuth, updateArticle)
 
-router.post('/articles/:id/comments', addComment);
+router.post('/articles/:id/comments', requireAuth, addComment);
 
-router.delete('/articles/:id', deleteArticle)
+router.delete('/articles/:id', requireAuth, deleteArticle)
 
 module.exports = router;

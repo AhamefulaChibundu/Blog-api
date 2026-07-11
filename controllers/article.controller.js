@@ -4,7 +4,12 @@ const Joi = require('joi');
 const postArticle = async (req, res, next) => {
     
     try {
-        const newArticle = new articleModel(req.body)
+        const newArticle = new articleModel({
+            title: req.body.title,
+            content: req.body.content,
+            category: req.body.category,
+            author: req.user._id
+        })
         await newArticle.save();
         return res.status(201).json({
             message: "Article created Successfully",
@@ -48,7 +53,7 @@ const getArticles = async (req, res, next) => {
 
     try {
         const articles = await articleModel
-            .find(query)
+            .find(query).populate("author", "_id name email")
             .sort({ createdAt: -1 })
             .limit(limit)
             .skip(skip);
@@ -71,7 +76,7 @@ const getArticles = async (req, res, next) => {
 
 const getArticleById = async (req, res, next) => {
     try {
-        const article = await articleModel.findById(req.params.id)
+        const article = await articleModel.findById(req.params.id).populate("author", "_id name email");
         if (!article) {
             return res.status(404).json({
                 message: `Article with ID ${req.params.id}`
@@ -90,14 +95,25 @@ const getArticleById = async (req, res, next) => {
 const updateArticle = async (req, res, next) => {
     
     try {
+
+        const article = await articleModel.findById(req.params.id);
+
+        if (!article) {
+            return res.status(404).json({
+                message: "Article not found"
+            });
+        }
+
+        if (article.author.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                message: "You are not authorized to update this article"
+            });
+        }
         const updatedArticle = await articleModel.findByIdAndUpdate(req.params.id, req.body, {
             new: true,
             runValidators: true
         })
 
-        if (!updatedArticle) {
-            return res.status(404).json("Article not found")
-        }
         return res.status(200).json({
             message: "Article Updated Successfully",
             data: updatedArticle
@@ -135,16 +151,29 @@ const addComment = async (req, res, next) => {
 
 const deleteArticle = async (req, res, next) => {
     try {
-        const article = await articleModel.findByIdAndDelete(req.params.id)
-        if (!article){
-            return res.status(404).json(`Article with ID ${req.params.id} not found`)
+        const article = await articleModel.findById(req.params.id);
+
+        if (!article) {
+            return res.status(404).json({
+                message: "Article not found"
+            });
         }
+
+        if (article.author.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                message: "You are not authorized to delete this article"
+            });
+        }
+
+        await article.deleteOne();
+
         return res.status(204).send();
+
     } catch (error) {
         console.error(error);
         next(error);
     }
-}
+};
 
 module.exports = {
     postArticle,

@@ -6,6 +6,7 @@ const logRequest = require('./middlewares/logger');
 const errorHandler = require('./middlewares/errorHandler');
 const connectDB = require('./database/connectDb');
 const articleRoutes = require('./routes/article.routes');
+const userRoutes = require('./routes/user.routes');
 
 app.use(express.json())
 app.use(cors({
@@ -16,6 +17,7 @@ app.use(logRequest);
 connectDB();
 
 app.use('/api', articleRoutes);
+app.use('/api/user/', userRoutes)
 
 app.use(errorHandler);
 

@@ -14,9 +14,9 @@ const articleSchema = new mongoose.Schema({
         trim: true
     },
     author: {
-        type: String,
-        default: "Guest",
-        trim: true
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true
     },
     category: {
         type: String,
