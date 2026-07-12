@@ -11,9 +11,14 @@ const postArticle = async (req, res, next) => {
             author: req.user._id
         })
         await newArticle.save();
+
+        const populatedArticle = await articleModel
+        .findById(newArticle._id)
+        .populate("author", "_id name email");
+        
         return res.status(201).json({
             message: "Article created Successfully",
-            data: newArticle
+            data: populatedArticle
         });
     } catch (error) {
         console.error(error);
@@ -80,10 +85,11 @@ const getArticleById = async (req, res, next) => {
         const article = await articleModel.findById(req.params.id)
         .populate("author", "_id name email")
         .populate("comments.author", "_id name email");
+        
         if (!article) {
             return res.status(404).json({
-                message: `Article with ID ${req.params.id}`
-            })
+                message: `Article with ID ${req.params.id} not found`
+            });
         }
         return res.status(200).json({
             message: "Article fetched",
@@ -117,10 +123,15 @@ const updateArticle = async (req, res, next) => {
             runValidators: true
         })
 
+        const populatedArticle = await articleModel
+        .findById(updatedArticle._id)
+        .populate("author", "_id name email")
+        .populate("comments.author", "_id name email");
+        
         return res.status(200).json({
             message: "Article Updated Successfully",
-            data: updatedArticle
-        })
+            data: populatedArticle
+        });
     } catch (error) {
         console.error(error);
         next(error);
