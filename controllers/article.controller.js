@@ -54,6 +54,7 @@ const getArticles = async (req, res, next) => {
     try {
         const articles = await articleModel
             .find(query).populate("author", "_id name email")
+            .populate("comments.author", "_id name email")
             .sort({ createdAt: -1 })
             .limit(limit)
             .skip(skip);
@@ -76,7 +77,9 @@ const getArticles = async (req, res, next) => {
 
 const getArticleById = async (req, res, next) => {
     try {
-        const article = await articleModel.findById(req.params.id).populate("author", "_id name email");
+        const article = await articleModel.findById(req.params.id)
+        .populate("author", "_id name email")
+        .populate("comments.author", "_id name email");
         if (!article) {
             return res.status(404).json({
                 message: `Article with ID ${req.params.id}`
@@ -134,13 +137,21 @@ const addComment = async (req, res, next) => {
             });
         }
 
-        article.comments.push(req.body);
+        article.comments.push({
+            author: req.user._id,
+            comment: req.body.comment
+        });
 
         await article.save();
 
+        const populatedArticle = await articleModel
+        .findById(article._id)
+        .populate("author", "_id name email")
+        .populate("comments.author", "_id name email");
+        
         return res.status(201).json({
             message: "Comment added successfully",
-            data: article
+            data: populatedArticle
         });
 
     } catch (error) {

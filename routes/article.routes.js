@@ -1,5 +1,5 @@
 const express = require('express');
-const {postValidator, putValidator} = require('../middlewares/schema');
+const {postValidator, putValidator, commentValidator} = require('../middlewares/schema');
 const validate = require('../middlewares/validator');
 const {
     getArticles,
@@ -20,7 +20,7 @@ router.get('/articles/:id', requireAuth, getArticleById)
 
 router.put('/articles/:id', validate(putValidator), requireAuth, updateArticle)
 
-router.post('/articles/:id/comments', requireAuth, addComment);
+router.post('/articles/:id/comments', validate(commentValidator), requireAuth, addComment);
 
 router.delete('/articles/:id', requireAuth, deleteArticle)
 

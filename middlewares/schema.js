@@ -36,7 +36,6 @@ const putValidator = Joi.object({
 });
 
 const commentValidator = Joi.object({
-    author: Joi.string().required(),
     comment: Joi.string().min(2).required()
 });
 

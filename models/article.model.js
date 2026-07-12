@@ -35,9 +35,9 @@ const articleSchema = new mongoose.Schema({
     comments: [
         {
             author: {
-                type: String,
-                required: true,
-                trim: true
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+                required: true
             },
             comment: {
                 type: String,
