@@ -14,7 +14,7 @@ POST https://blog-api-jf07.onrender.com/api/user/auth/sign-up
 
 ### Login
 
-https://blog-api-jf07.onrender.com/api/user/auth/login
+POST https://blog-api-jf07.onrender.com/api/user/auth/login
 
 ### Get all articles
 
