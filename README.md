@@ -8,6 +8,14 @@ A production-ready RESTful Blog API built with **Node.js**, **Express.js**, **Mo
 
 ## Example Endpoints
 
+### Sign Up
+
+POST https://blog-api-jf07.onrender.com/api/user/auth/sign-up
+
+### Login
+
+https://blog-api-jf07.onrender.com/api/user/auth/login
+
 ### Get all articles
 
 GET https://blog-api-jf07.onrender.com/api/articles
