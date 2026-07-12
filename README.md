@@ -1,79 +1,119 @@
 # Blog API
 
-A RESTful Blog API built with Node.js, Express.js, MongoDB, and Mongoose. The API enables clients to manage blog articles through CRUD operations, search and filter content, paginate results, and add comments to articles. It follows REST principles and demonstrates common backend development practices such as request validation, middleware, and centralized error handling.
+A production-ready RESTful Blog API built with **Node.js**, **Express.js**, **MongoDB**, and **Mongoose**. The API enables authenticated users to create and manage blog articles, search and filter content, paginate results, and add comments. It demonstrates backend development best practices including JWT authentication, authorization, request validation, middleware, and centralized error handling.
 
-## Live Demo
+---
 
-### Example Endpoints
+# Live Demo
 
-- **Get all articles**  
-  https://blog-api-jf07.onrender.com/api/articles
+## Example Endpoints
 
-- **Search articles**  
-  https://blog-api-jf07.onrender.com/api/articles?search=jimmy
+### Get all articles
 
-- **Filter by category**  
-  https://blog-api-jf07.onrender.com/api/articles?category=Technology
+GET https://blog-api-jf07.onrender.com/api/articles
 
-- **Pagination**  
-  https://blog-api-jf07.onrender.com/api/articles?page=1&limit=5
+### Search articles
 
-- **Combined query**  
-  https://blog-api-jf07.onrender.com/api/articles?category=Technology&search=jimmy&page=1&limit=5
-  
-## Features
+GET https://blog-api-jf07.onrender.com/api/articles?search=jimmy
 
-- Create new blog articles
+### Filter by category
+
+GET https://blog-api-jf07.onrender.com/api/articles?category=Technology
+
+### Pagination
+
+GET https://blog-api-jf07.onrender.com/api/articles?page=1&limit=5
+
+### Combined query
+
+GET https://blog-api-jf07.onrender.com/api/articles?category=Technology&search=node&page=1&limit=5
+
+---
+
+# Features
+
+## Authentication
+
+- User registration
+- User login
+- JWT authentication
+- Password hashing using bcrypt
+- Protected API routes
+
+## Authorization
+
+- Only authenticated users can create articles
+- Only the owner of an article can update or delete it
+- Only authenticated users can comment on articles
+
+## Articles
+
+- Create articles
 - Retrieve all articles
-- Retrieve a single article by ID
-- Update existing articles
+- Retrieve a single article
+- Update articles
 - Delete articles
-- Search articles by title or content
-- Filter articles by category
-- Paginate article results
+- Search by title or content
+- Filter by category
+- Pagination
+
+## Comments
+
 - Add comments to articles
-- Request logging middleware
+- Comments are linked to authenticated users
+
+## Other Features
+
+- Populate article author information
+- Populate comment author information
 - Request validation using Joi
-- Global error handling
+- Request logging middleware
+- Centralized error handling
 - MongoDB integration with Mongoose
 
 ---
 
-## Technologies Used
+# Technologies Used
 
 - Node.js
 - Express.js
-- MongoDB
+- MongoDB Atlas
 - Mongoose
 - Joi
+- JSON Web Token (JWT)
+- bcrypt
 - dotenv
 - CORS
 - Nodemon
 
 ---
 
-## Project Structure
+# Project Structure
 
-```
+```text
 Blog/
 │
 ├── controllers/
-│   └── article.controller.js
+│   ├── article.controller.js
+│   └── user.controller.js
 │
 ├── database/
 │   └── db.js
 │
 ├── middlewares/
+│   ├── requireAuth.js
 │   ├── errorHandler.js
 │   ├── logger.js
 │   ├── schema.js
 │   └── validator.js
 │
 ├── models/
-│   └── article.model.js
+│   ├── article.model.js
+│   └── user.model.js
 │
 ├── routes/
-│   └── article.routes.js
+│   ├── article.routes.js
+│   └── user.routes.js
 │
 ├── .env
 ├── .gitignore
@@ -84,7 +124,7 @@ Blog/
 
 ---
 
-## Installation
+# Installation
 
 Clone the repository
 
@@ -109,6 +149,7 @@ Create a `.env` file
 ```env
 PORT=5000
 MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_secret_key
 ```
 
 Start the development server
@@ -125,90 +166,159 @@ nodemon index.js
 
 ---
 
-## API Endpoints
+# Authentication
 
-### Articles
+All protected routes require a Bearer Token.
 
-| Method | Endpoint | Description |
-|---------|----------|-------------|
-| POST | `/api/articles` | Create a new article |
-| GET | `/api/articles` | Get all articles |
-| GET | `/api/articles/:id` | Get a single article |
-| PUT | `/api/articles/:id` | Update an article |
-| DELETE | `/api/articles/:id` | Delete an article |
-
----
-
-### Comments
-
-| Method | Endpoint | Description |
-|---------|----------|-------------|
-| POST | `/api/articles/:id/comments` | Add a comment to an article |
-
----
-
-## Query Parameters
-
-### Search
+Example:
 
 ```http
-GET /api/articles?search=anyword
+Authorization: Bearer YOUR_JWT_TOKEN
 ```
 
-Searches article title and content.
+You can obtain a token by logging in.
 
-### Filter by Category
+---
+
+# API Endpoints
+
+## Authentication
+
+| Method | Endpoint | Description |
+|---------|----------|-------------|
+| POST | `/api/sign-up` | Register a new user |
+| POST | `/api/login` | Login and receive a JWT |
+
+---
+
+## Articles
+
+| Method | Endpoint | Description |
+|---------|----------|-------------|
+| POST | `/api/articles` | Create a new article *(Authenticated)* |
+| GET | `/api/articles` | Get all articles *(Authenticated)* |
+| GET | `/api/articles/:id` | Get a single article *(Authenticated)* |
+| PUT | `/api/articles/:id` | Update an article *(Owner only)* |
+| DELETE | `/api/articles/:id` | Delete an article *(Owner only)* |
+
+---
+
+## Comments
+
+| Method | Endpoint | Description |
+|---------|----------|-------------|
+| POST | `/api/articles/:id/comments` | Add a comment *(Authenticated)* |
+
+---
+
+# Query Parameters
+
+## Search
+
+```http
+GET /api/articles?search=node
+```
+
+Searches article titles and content.
+
+## Filter by Category
 
 ```http
 GET /api/articles?category=Technology
 ```
 
-### Pagination
+## Pagination
 
 ```http
 GET /api/articles?page=1&limit=5
 ```
 
-You can combine them.
+You can combine query parameters.
 
 Example:
 
 ```http
-GET /api/articles?category=Technology&search=anyword&page=1&limit=5
+GET /api/articles?category=Technology&search=node&page=1&limit=5
 ```
 
 ---
 
-## Example Request
+# Example Requests
+
+## Register User
 
 ```json
 {
-    "title": "Getting Started with Express",
-    "content": "Express.js is a minimal and flexible Node.js framework for building web applications...",
-    "author": "Ahamefula Chibundu",
-    "category": "Programming"
+  "name": "David Mark",
+  "email": "david@example.com",
+  "password": "password123"
 }
 ```
 
+## Login User
+
+```json
+{
+  "email": "david@example.com",
+  "password": "password123"
+}
+```
+
+## Create Article
+
+```json
+{
+  "title": "Getting Started with Express",
+  "content": "Express.js is a minimal and flexible Node.js framework for building web applications...",
+  "category": "Programming"
+}
+```
+
+> **Note:** The authenticated user is automatically assigned as the article author.
+
+## Add Comment
+
+```json
+{
+  "comment": "Great article! Thanks for sharing."
+}
+```
+
+> **Note:** The authenticated user is automatically assigned as the comment author.
+
 ---
 
+# HTTP Status Codes
 
-## Future Improvements
+| Status Code | Description |
+|------------|-------------|
+| 200 | Request successful |
+| 201 | Resource created successfully |
+| 400 | Bad request / Validation error |
+| 401 | Unauthorized / Invalid or missing token |
+| 403 | Forbidden / User not authorized |
+| 404 | Resource not found |
+| 500 | Internal server error |
 
-- User authentication with JWT
-- User registration and login
-- Authorization
+---
+
+# Future Improvements
+
 - Edit comments
 - Delete comments
 - Like articles
-- Image uploads
+- Upload article images
 - Tags
 - Rich text editor support
-- Swagger API documentation
-- Unit and integration testing
+- Swagger/OpenAPI documentation
+- Unit testing
+- Integration testing
+- User profile management
+- Refresh tokens
+- Role-based authorization (Admin/User)
 
 ---
 
-## Author
+# Author
 
 **Ahamefula Chibundu**
