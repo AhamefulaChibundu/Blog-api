@@ -1,27 +1,17 @@
-const express = require('express');
-const app = express();
 require('dotenv').config();
-const cors = require('cors');
-const logRequest = require('./middlewares/logger');
-const errorHandler = require('./middlewares/errorHandler');
-const connectDB = require('./database/connectDb');
-const articleRoutes = require('./routes/article.routes');
-const userRoutes = require('./routes/user.routes');
+const app = require('./src/app');
+const connectDB = require('./src/config/connectDb');
+const validateEnv = require("./src/config/env");
 
-app.use(express.json())
-app.use(cors({
-    origin: "*"
-}))
-app.use(logRequest);
-
-connectDB();
-
-app.use('/api', articleRoutes);
-app.use('/api/user/', userRoutes)
-
-app.use(errorHandler);
-
+validateEnv();
 const PORT = process.env.PORT;
-app.listen(PORT, () => {
-    console.log(`Server is listening on port ${PORT}`);
-})
+
+const startServer = async() => {
+    await connectDB();
+
+    app.listen(PORT, () => {
+        console.log(`Server is listening on port ${PORT}`);
+    })
+}
+
+startServer();
