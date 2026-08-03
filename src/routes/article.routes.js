@@ -1,6 +1,6 @@
 const express = require('express');
-const {postValidator, putValidator, commentValidator} = require('../middlewares/schema');
-const validate = require('../middlewares/validator');
+const {postValidator, putValidator, commentValidator} = require('../validators/article.validator');
+const validate = require('../middlewares/validate');
 const {
     getArticles,
     getArticleById,
