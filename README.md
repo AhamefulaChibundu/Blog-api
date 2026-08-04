@@ -1,6 +1,8 @@
 # Blog API
 
-A production-ready RESTful Blog API built with **Node.js**, **Express.js**, **MongoDB**, and **Mongoose**. The API enables authenticated users to create and manage blog articles, search and filter content, paginate results, and add comments. It demonstrates backend development best practices including JWT authentication, authorization, request validation, middleware, and centralized error handling.
+A production-ready RESTful Blog API built with **Node.js**, **Express.js**, **MongoDB**, and **Mongoose**.
+
+The API enables authenticated users to create and manage blog articles, search and filter content, paginate results, and add comments. It follows the **MVC (Model-View-Controller)** architectural pattern and demonstrates backend development best practices including JWT authentication, authorization, request validation, middleware, centralized error handling, and environment configuration validation.
 
 ---
 
@@ -72,12 +74,14 @@ GET https://blog-api-jf07.onrender.com/api/articles?category=Technology&search=n
 
 ## Other Features
 
-- Populate article author information
-- Populate comment author information
+- MVC Architecture
+- Environment variable validation at application startup
 - Request validation using Joi
-- Request logging middleware
 - Centralized error handling
+- Request logging middleware
 - MongoDB integration with Mongoose
+- Author information populated automatically
+- Comment author populated automatically
 
 ---
 
@@ -101,29 +105,40 @@ GET https://blog-api-jf07.onrender.com/api/articles?category=Technology&search=n
 ```text
 Blog/
 │
-├── controllers/
-│   ├── article.controller.js
-│   └── user.controller.js
+├── src/
+│   ├── app.js
+│   │
+│   ├── config/
+│   │   ├── connectDb.js
+│   │   └── env.js
+│   │
+│   ├── controllers/
+│   │   ├── article.controller.js
+│   │   └── user.controller.js
+│   │
+│   ├── middlewares/
+│   │   ├── errorHandler.js
+│   │   ├── logger.js
+│   │   ├── requireAuth.js
+│   │   └── validate.js
+│   │
+│   ├── models/
+│   │   ├── article.model.js
+│   │   └── user.model.js
+│   │
+│   ├── routes/
+│   │   ├── article.routes.js
+│   │   └── user.routes.js
+│   │
+│   ├── utils/
+│   │   ├── bcrypt.js
+│   │   └── jwt.js
+│   │
+│   └── validators/
+│       ├── article.validator.js
+│       └── user.validator.js
 │
-├── database/
-│   └── db.js
-│
-├── middlewares/
-│   ├── requireAuth.js
-│   ├── errorHandler.js
-│   ├── logger.js
-│   ├── schema.js
-│   └── validator.js
-│
-├── models/
-│   ├── article.model.js
-│   └── user.model.js
-│
-├── routes/
-│   ├── article.routes.js
-│   └── user.routes.js
-│
-├── .env
+├── .env.example
 ├── .gitignore
 ├── index.js
 ├── package.json
@@ -152,13 +167,7 @@ Install dependencies
 npm install
 ```
 
-Create a `.env` file
-
-```env
-PORT=5000
-MONGODB_URI=your_mongodb_connection_string
-JWT_SECRET=your_secret_key
-```
+Create a `.env` file using `.env.example` as a template.
 
 Start the development server
 
@@ -176,9 +185,9 @@ nodemon index.js
 
 # Authentication
 
-All protected routes require a Bearer Token.
+Protected routes require a Bearer Token.
 
-Example:
+Example
 
 ```http
 Authorization: Bearer YOUR_JWT_TOKEN
@@ -194,8 +203,8 @@ You can obtain a token by logging in.
 
 | Method | Endpoint | Description |
 |---------|----------|-------------|
-| POST | `/api/sign-up` | Register a new user |
-| POST | `/api/login` | Login and receive a JWT |
+| POST | `/api/user/auth/sign-up` | Register a new user |
+| POST | `/api/user/auth/login` | Login and receive a JWT |
 
 ---
 
@@ -203,11 +212,11 @@ You can obtain a token by logging in.
 
 | Method | Endpoint | Description |
 |---------|----------|-------------|
-| POST | `/api/articles` | Create a new article *(Authenticated)* |
-| GET | `/api/articles` | Get all articles *(Authenticated)* |
-| GET | `/api/articles/:id` | Get a single article *(Authenticated)* |
-| PUT | `/api/articles/:id` | Update an article *(Owner only)* |
-| DELETE | `/api/articles/:id` | Delete an article *(Owner only)* |
+| POST | `/api/articles` | Create an article *(Authenticated)* |
+| GET | `/api/articles` | Retrieve all articles |
+| GET | `/api/articles/:id` | Retrieve a single article |
+| PUT | `/api/articles/:id` | Update article *(Owner only)* |
+| DELETE | `/api/articles/:id` | Delete article *(Owner only)* |
 
 ---
 
@@ -215,7 +224,7 @@ You can obtain a token by logging in.
 
 | Method | Endpoint | Description |
 |---------|----------|-------------|
-| POST | `/api/articles/:id/comments` | Add a comment *(Authenticated)* |
+| POST | `/api/articles/:id/comments` | Add comment *(Authenticated)* |
 
 ---
 
@@ -319,11 +328,14 @@ GET /api/articles?category=Technology&search=node&page=1&limit=5
 - Tags
 - Rich text editor support
 - Swagger/OpenAPI documentation
+- Docker support
+- API rate limiting
+- Helmet security headers
 - Unit testing
 - Integration testing
-- User profile management
 - Refresh tokens
-- Role-based authorization (Admin/User)
+- Role-based authorization
+- User profile management
 
 ---
 
