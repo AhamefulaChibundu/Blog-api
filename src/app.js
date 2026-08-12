@@ -12,8 +12,8 @@ app.use(cors({
 }))
 app.use(logRequest);
 
+app.use('/api/user/', userRoutes);
 app.use('/api', articleRoutes);
-app.use('/api/user/', userRoutes)
 
 app.use(errorHandler);
 
