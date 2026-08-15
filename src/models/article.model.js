@@ -32,6 +32,15 @@ const articleSchema = new mongoose.Schema({
             "Others"
         ]
     },
+
+    image: {
+        url: {
+            type: String
+        },
+        publicId: {
+            type: String
+        }
+    },
     comments: [
         {
             author: {

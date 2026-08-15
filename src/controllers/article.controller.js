@@ -8,7 +8,11 @@ const postArticle = async (req, res, next) => {
             title: req.body.title,
             content: req.body.content,
             category: req.body.category,
-            author: req.user._id
+            author: req.user._id,
+             image: {
+                url: req.body.image?.url,
+                publicId: req.body.image?.publicId
+            }
         })
         await newArticle.save();
 

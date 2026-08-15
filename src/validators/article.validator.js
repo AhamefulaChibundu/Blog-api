@@ -15,7 +15,12 @@ const postValidator = Joi.object({
             "Sports",
             "Others"
         )
-        .required()
+        .required(),
+
+    image: Joi.object({
+        url: Joi.string().uri().required(),
+        publicId: Joi.string().required()
+    }).optional() 
 });
 
 const putValidator = Joi.object({
@@ -32,7 +37,12 @@ const putValidator = Joi.object({
             "Sports",
             "Others"
         )
-        .optional()
+        .optional(),
+    
+    image: Joi.object({
+        url: Joi.string().uri().required(),
+        publicId: Joi.string().required()
+    }).optional()
 });
 
 const commentValidator = Joi.object({

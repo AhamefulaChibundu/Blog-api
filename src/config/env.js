@@ -1,7 +1,10 @@
 const requiredEnvVars = [
     "PORT",
     "MONGODB_URI",
-    "JWT_SECRET"
+    "JWT_SECRET",
+    "CLOUDINARY_NAME",
+    "CLOUDINARY_KEY",
+    "CLOUDINARY_SECRET"
 ];
 
 const validateEnv = () => {
