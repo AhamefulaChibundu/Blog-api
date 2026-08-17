@@ -1,5 +1,6 @@
 const articleModel = require('../models/article.model.js');
 const Joi = require('joi');
+const cloudinary = require('../config/cloudinary');
 
 const postArticle = async (req, res, next) => {
     
@@ -201,11 +202,52 @@ const deleteArticle = async (req, res, next) => {
     }
 };
 
+const removeArticleImage = async (req, res, next) => {
+    try {
+        const article = await articleModel.findById(req.params.id);
+
+        if (!article) {
+            return res.status(404).json({
+                message: "Article not found"
+            });
+        }
+
+        if (!article.image?.publicId) {
+            return res.status(404).json({
+                message: "Article has no image"
+            });
+        }
+
+        const result = await cloudinary.uploader.destroy(
+            article.image.publicId
+        );
+
+        if (result.result === "not found") {
+            return res.status(404).json({
+                message: "Image not found on Cloudinary"
+            });
+        }
+
+        article.image = undefined; //removes image from database
+
+        await article.save();
+
+        return res.status(200).json({
+            message: "Article image deleted successfully"
+        });
+
+    } catch (error) {
+        console.error(error);
+        next(error);
+    }
+};
+
 module.exports = {
     postArticle,
     getArticles, 
     getArticleById,
     updateArticle,
     addComment,
-    deleteArticle
+    deleteArticle,
+    removeArticleImage
 }

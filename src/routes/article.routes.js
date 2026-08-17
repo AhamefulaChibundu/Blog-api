@@ -7,7 +7,8 @@ const {
     postArticle,
     updateArticle,
     addComment,
-    deleteArticle} = require('../controllers/article.controller');
+    deleteArticle,
+    removeArticleImage} = require('../controllers/article.controller');
 const requireAuth = require('../middlewares/requireAuth');
 
 const router = express.Router();
@@ -25,5 +26,7 @@ router.put('/articles/:id', validate(putValidator), updateArticle)
 router.post('/articles/:id/comments', validate(commentValidator), addComment);
 
 router.delete('/articles/:id', deleteArticle)
+
+router.delete('/articles/:id/image', removeArticleImage);
 
 module.exports = router;
