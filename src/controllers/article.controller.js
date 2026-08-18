@@ -213,6 +213,12 @@ const removeArticleImage = async (req, res, next) => {
             });
         }
 
+        if (article.author.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                message: "You are not authorized to modify this article"
+            });
+        }
+
         if (!article.image?.publicId) {
             return res.status(404).json({
                 message: "Article has no image"
@@ -250,6 +256,12 @@ const updateArticleImage = async (req, res, next) => {
         if (!article) {
             return res.status(404).json({
                 message: "Article not found"
+            });
+        }
+
+        if (article.author.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                message: "You are not authorized to modify this article"
             });
         }
 
