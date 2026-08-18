@@ -8,8 +8,10 @@ const {
     updateArticle,
     addComment,
     deleteArticle,
-    removeArticleImage} = require('../controllers/article.controller');
+    removeArticleImage,
+    updateArticleImage} = require('../controllers/article.controller');
 const requireAuth = require('../middlewares/requireAuth');
+const upload = require('../middlewares/upload');
 
 const router = express.Router();
 
@@ -28,5 +30,7 @@ router.post('/articles/:id/comments', validate(commentValidator), addComment);
 router.delete('/articles/:id', deleteArticle)
 
 router.delete('/articles/:id/image', removeArticleImage);
+
+router.put('/articles/:id/image', upload.single('image'),updateArticleImage);
 
 module.exports = router;

@@ -1,6 +1,7 @@
 const articleModel = require('../models/article.model.js');
 const Joi = require('joi');
 const cloudinary = require('../config/cloudinary');
+const {uploadImage, deleteImage} = require('../utils/cloudinary');
 
 const postArticle = async (req, res, next) => {
     
@@ -242,6 +243,67 @@ const removeArticleImage = async (req, res, next) => {
     }
 };
 
+const updateArticleImage = async (req, res, next) => {
+    try {
+        const article = await articleModel.findById(req.params.id);
+
+        if (!article) {
+            return res.status(404).json({
+                message: "Article not found"
+            });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({
+                message: "Please provide a new image"
+            });
+        }
+
+        const oldPublicId = article.image?.publicId;
+
+        // 1. Upload the new image
+        const newImage = await uploadImage(req.file.buffer);
+
+        try {
+            // 2. Update MongoDB first
+            article.image = {
+                url: newImage.secure_url,
+                publicId: newImage.public_id
+            };
+
+            await article.save();
+
+        } catch (databaseError) {
+
+            // 3. MongoDB failed, so clean up the new Cloudinary image
+            await deleteImage(newImage.public_id);
+
+            throw databaseError;
+        }
+
+        // 4. MongoDB now points to the new image.
+        //    Delete the old image afterwards.
+        if (oldPublicId) {
+            const deleteResult = await deleteImage(oldPublicId);
+
+            if (deleteResult.result === "not found") {
+                console.warn(
+                    `Old image ${oldPublicId} was not found on Cloudinary`
+                );
+            }
+        }
+
+        return res.status(200).json({
+            message: "Article image updated successfully",
+            image: article.image
+        });
+
+    } catch (error) {
+        console.error(error);
+        next(error);
+    }
+};
+
 module.exports = {
     postArticle,
     getArticles, 
@@ -249,5 +311,6 @@ module.exports = {
     updateArticle,
     addComment,
     deleteArticle,
-    removeArticleImage
+    removeArticleImage,
+    updateArticleImage
 }
