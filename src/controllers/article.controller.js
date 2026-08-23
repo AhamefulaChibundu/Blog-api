@@ -193,7 +193,21 @@ const deleteArticle = async (req, res, next) => {
             });
         }
 
+        const publicId = article.image?.publicId;
+
+        // Delete article from MongoDB
         await article.deleteOne();
+
+        // Delete associated image from Cloudinary
+        if (publicId) {
+            const result = await deleteImage(publicId);
+
+            if (result.result === "not found") {
+                console.warn(
+                    `Article image ${publicId} was not found on Cloudinary`
+                );
+            }
+        }
 
         return res.status(204).send();
 
