@@ -1,6 +1,5 @@
 const articleModel = require('../models/article.model.js');
 const Joi = require('joi');
-const cloudinary = require('../config/cloudinary');
 const {uploadImage, deleteImage} = require('../utils/cloudinary');
 
 const postArticle = async (req, res, next) => {
@@ -239,14 +238,10 @@ const removeArticleImage = async (req, res, next) => {
             });
         }
 
-        const result = await cloudinary.uploader.destroy(
-            article.image.publicId
-        );
+        const result = await deleteImage(article.image.publicId);
 
         if (result.result === "not found") {
-            return res.status(404).json({
-                message: "Image not found on Cloudinary"
-            });
+            console.warn(`Image ${article.image.publicId} was not found on Cloudinary`);
         }
 
         article.image = undefined; //removes image from database
