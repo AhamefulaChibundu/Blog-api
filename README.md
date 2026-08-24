@@ -2,7 +2,9 @@
 
 A production-ready RESTful Blog API built with **Node.js**, **Express.js**, **MongoDB**, and **Mongoose**.
 
-The API enables authenticated users to create and manage blog articles, search and filter content, paginate results, and add comments. It follows the **MVC (Model-View-Controller)** architectural pattern and demonstrates backend development best practices including JWT authentication, authorization, request validation, middleware, centralized error handling, and environment configuration validation.
+The API enables authenticated users to create and manage blog articles, upload and manage article images, manage profile pictures, search and filter content, paginate results, and add comments.
+
+It follows the **MVC (Model-View-Controller)** architectural pattern and demonstrates backend development best practices including JWT authentication, authorization, request validation, middleware, centralized error handling, Cloudinary image management, and environment configuration validation.
 
 ---
 
@@ -44,59 +46,104 @@ GET https://blog-api-jf07.onrender.com/api/articles?category=Technology&search=n
 
 ## Authentication
 
-- User registration
-- User login
-- JWT authentication
-- Password hashing using bcrypt
-- Protected API routes
+* User registration
+* User login
+* JWT authentication
+* Password hashing using bcrypt
+* Protected API routes
 
 ## Authorization
 
-- Only authenticated users can create articles
-- Only the owner of an article can update or delete it
-- Only authenticated users can comment on articles
+* Only authenticated users can create articles
+* Only the owner of an article can update it
+* Only the owner of an article can delete it
+* Only the owner of an article can update or delete its image
+* Only authenticated users can comment on articles
+* Only authenticated users can manage their profile picture
 
 ## Articles
 
-- Create articles
-- Retrieve all articles
-- Retrieve a single article
-- Update articles
-- Delete articles
-- Search by title or content
-- Filter by category
-- Pagination
+* Create articles
+* Retrieve all articles
+* Retrieve a single article
+* Update articles
+* Delete articles
+* Search by title or content
+* Filter by category
+* Pagination
+* Category validation
+* Author information automatically associated with articles
+
+## Article Images
+
+Article images are stored using **Cloudinary**, while image information is stored in MongoDB.
+
+Each article image stores:
+
+* Secure image URL
+* Cloudinary public ID
+
+Supported operations:
+
+* Upload article images
+* Replace article images
+* Delete article images
+* Automatically remove old Cloudinary images when an article image is replaced
+* Automatically remove associated Cloudinary images when an article is deleted
+* Prevent unauthorized users from modifying another user's article images
+
+The Cloudinary upload functionality uses Multer's `memoryStorage`, allowing image buffers to be uploaded directly to Cloudinary without permanently storing uploaded files on the server.
+
+## User Profile Pictures
+
+Users can optionally add a profile picture from their profile page.
+
+Profile pictures:
+
+* Are not required during registration
+* Are not part of the login process
+* Are uploaded through a dedicated authenticated endpoint
+* Are stored in Cloudinary
+* Store the image URL and Cloudinary public ID in MongoDB
+* Can be replaced without creating orphaned Cloudinary images
 
 ## Comments
 
-- Add comments to articles
-- Comments are linked to authenticated users
+* Add comments to articles
+* Comments are linked to authenticated users
+* Comment authors are automatically populated when retrieving articles
+* Comment timestamps are automatically generated
 
 ## Other Features
 
-- MVC Architecture
-- Environment variable validation at application startup
-- Request validation using Joi
-- Centralized error handling
-- Request logging middleware
-- MongoDB integration with Mongoose
-- Author information populated automatically
-- Comment author populated automatically
+* MVC architecture
+* Environment variable validation at application startup
+* Request validation using Joi
+* Centralized error handling
+* Request logging middleware
+* MongoDB integration with Mongoose
+* Cloudinary integration for image storage
+* Reusable Cloudinary upload and deletion utilities
+* Author information populated automatically
+* Comment author information populated automatically
+* Protected resource ownership checks
 
 ---
 
 # Technologies Used
 
-- Node.js
-- Express.js
-- MongoDB Atlas
-- Mongoose
-- Joi
-- JSON Web Token (JWT)
-- bcrypt
-- dotenv
-- CORS
-- Nodemon
+* Node.js
+* Express.js
+* MongoDB Atlas
+* Mongoose
+* Joi
+* JSON Web Token (JWT)
+* bcrypt
+* Cloudinary
+* Multer
+* dotenv
+* CORS
+* Nodemon
 
 ---
 
@@ -104,13 +151,15 @@ GET https://blog-api-jf07.onrender.com/api/articles?category=Technology&search=n
 
 ```text
 Blog/
+
 │
 ├── src/
 │   ├── app.js
 │   │
 │   ├── config/
 │   │   ├── connectDb.js
-│   │   └── env.js
+│   │   ├── env.js
+│   │   └── cloudinary.js
 │   │
 │   ├── controllers/
 │   │   ├── article.controller.js
@@ -120,6 +169,7 @@ Blog/
 │   │   ├── errorHandler.js
 │   │   ├── logger.js
 │   │   ├── requireAuth.js
+│   │   ├── upload.js
 │   │   └── validate.js
 │   │
 │   ├── models/
@@ -132,6 +182,7 @@ Blog/
 │   │
 │   ├── utils/
 │   │   ├── bcrypt.js
+│   │   ├── cloudinary.js
 │   │   └── jwt.js
 │   │
 │   └── validators/
@@ -149,19 +200,19 @@ Blog/
 
 # Installation
 
-Clone the repository
+Clone the repository:
 
 ```bash
 git clone https://github.com/AhamefulaChibundu/blog-api.git
 ```
 
-Navigate into the project
+Navigate into the project:
 
 ```bash
 cd blog-api
 ```
 
-Install dependencies
+Install dependencies:
 
 ```bash
 npm install
@@ -169,13 +220,15 @@ npm install
 
 Create a `.env` file using `.env.example` as a template.
 
-Start the development server
+Configure the required environment variables, including MongoDB and Cloudinary credentials.
+
+Start the development server:
 
 ```bash
 npm run dev
 ```
 
-or
+or:
 
 ```bash
 nodemon index.js
@@ -187,7 +240,7 @@ nodemon index.js
 
 Protected routes require a Bearer Token.
 
-Example
+Example:
 
 ```http
 Authorization: Bearer YOUR_JWT_TOKEN
@@ -201,30 +254,33 @@ You can obtain a token by logging in.
 
 ## Authentication
 
-| Method | Endpoint | Description |
-|---------|----------|-------------|
-| POST | `/api/user/auth/sign-up` | Register a new user |
-| POST | `/api/user/auth/login` | Login and receive a JWT |
+| Method | Endpoint                    | Description                                         |
+| ------ | --------------------------- | --------------------------------------------------- |
+| POST   | `/api/user/auth/sign-up`    | Register a new user                                 |
+| POST   | `/api/user/auth/login`      | Login and receive a JWT                             |
+| PUT    | `/api/user/profile-picture` | Upload or replace profile picture *(Authenticated)* |
 
 ---
 
 ## Articles
 
-| Method | Endpoint | Description |
-|---------|----------|-------------|
-| POST | `/api/articles` | Create an article *(Authenticated)* |
-| GET | `/api/articles` | Retrieve all articles |
-| GET | `/api/articles/:id` | Retrieve a single article |
-| PUT | `/api/articles/:id` | Update article *(Owner only)* |
-| DELETE | `/api/articles/:id` | Delete article *(Owner only)* |
+| Method | Endpoint                  | Description                                    |
+| ------ | ------------------------- | ---------------------------------------------- |
+| POST   | `/api/articles`           | Create an article *(Authenticated)*            |
+| GET    | `/api/articles`           | Retrieve all articles                          |
+| GET    | `/api/articles/:id`       | Retrieve a single article                      |
+| PUT    | `/api/articles/:id`       | Update article *(Owner only)*                  |
+| DELETE | `/api/articles/:id`       | Delete article *(Owner only)*                  |
+| PUT    | `/api/articles/:id/image` | Upload or replace article image *(Owner only)* |
+| DELETE | `/api/articles/:id/image` | Delete article image *(Owner only)*            |
 
 ---
 
 ## Comments
 
-| Method | Endpoint | Description |
-|---------|----------|-------------|
-| POST | `/api/articles/:id/comments` | Add comment *(Authenticated)* |
+| Method | Endpoint                     | Description                   |
+| ------ | ---------------------------- | ----------------------------- |
+| POST   | `/api/articles/:id/comments` | Add comment *(Authenticated)* |
 
 ---
 
@@ -272,6 +328,8 @@ GET /api/articles?category=Technology&search=node&page=1&limit=5
 }
 ```
 
+> **Note:** A profile picture is optional and is not required during registration.
+
 ## Login User
 
 ```json
@@ -303,39 +361,111 @@ GET /api/articles?category=Technology&search=node&page=1&limit=5
 
 > **Note:** The authenticated user is automatically assigned as the comment author.
 
+## Upload Profile Picture
+
+The profile picture endpoint uses `multipart/form-data`.
+
+```http
+PUT /api/user/profile-picture
+```
+
+Header:
+
+```http
+Authorization: Bearer YOUR_JWT_TOKEN
+```
+
+Form-data:
+
+```text
+image: <image file>
+```
+
+The image is uploaded to Cloudinary and the resulting image URL and public ID are stored in the user's MongoDB document.
+
+## Upload or Replace Article Image
+
+```http
+PUT /api/articles/:id/image
+```
+
+Header:
+
+```http
+Authorization: Bearer YOUR_JWT_TOKEN
+```
+
+Form-data:
+
+```text
+image: <image file>
+```
+
+Only the article owner can perform this operation.
+
+---
+
+# Image Management
+
+Images are uploaded to Cloudinary while their references are stored in MongoDB.
+
+The application stores:
+
+```json
+{
+  "image": {
+    "url": "https://res.cloudinary.com/...",
+    "publicId": "uploads/example"
+  }
+}
+```
+
+The `publicId` is used to identify and delete the corresponding image from Cloudinary.
+
+The application also handles image cleanup when:
+
+* An article image is replaced
+* An article image is deleted
+* An article containing an image is deleted
+* A profile picture is replaced
+
+This helps prevent unnecessary orphaned files in Cloudinary.
+
 ---
 
 # HTTP Status Codes
 
-| Status Code | Description |
-|------------|-------------|
-| 200 | Request successful |
-| 201 | Resource created successfully |
-| 400 | Bad request / Validation error |
-| 401 | Unauthorized / Invalid or missing token |
-| 403 | Forbidden / User not authorized |
-| 404 | Resource not found |
-| 500 | Internal server error |
+| Status Code | Description                             |
+| ----------- | --------------------------------------- |
+| 200         | Request successful                      |
+| 201         | Resource created successfully           |
+| 204         | Resource deleted successfully           |
+| 400         | Bad request / Validation error          |
+| 401         | Unauthorized / Invalid or missing token |
+| 403         | Forbidden / User not authorized         |
+| 404         | Resource not found                      |
+| 500         | Internal server error                   |
 
 ---
 
 # Future Improvements
 
-- Edit comments
-- Delete comments
-- Like articles
-- Upload article images
-- Tags
-- Rich text editor support
-- Swagger/OpenAPI documentation
-- Docker support
-- API rate limiting
-- Helmet security headers
-- Unit testing
-- Integration testing
-- Refresh tokens
-- Role-based authorization
-- User profile management
+* Edit comments
+* Delete comments
+* Like articles
+* Tags
+* Rich text editor support
+* Swagger/OpenAPI documentation
+* Docker support
+* API rate limiting
+* Helmet security headers
+* Unit testing
+* Integration testing
+* Refresh tokens
+* Role-based authorization
+* Advanced user profile management
+* Image optimization and transformation
+* Automated cleanup/reconciliation for orphaned Cloudinary images
 
 ---
 
