@@ -1,35 +1,59 @@
 const articleModel = require('../models/article.model.js');
-const Joi = require('joi');
 const {uploadImage, deleteImage} = require('../utils/cloudinary');
 
 const postArticle = async (req, res, next) => {
-    
+    const uploadedImages = [];
+
     try {
+        // Upload each image file to Cloudinary
+        if (req.files?.length) {
+            for (const file of req.files) {
+                const result = await uploadImage(file.buffer);
+
+                uploadedImages.push({
+                    url: result.secure_url,
+                    publicId: result.public_id
+                });
+            }
+        }
+
         const newArticle = new articleModel({
             title: req.body.title,
             content: req.body.content,
             category: req.body.category,
             author: req.user._id,
-             image: {
-                url: req.body.image?.url,
-                publicId: req.body.image?.publicId
-            }
-        })
+            images: uploadedImages
+        });
+
         await newArticle.save();
 
         const populatedArticle = await articleModel
-        .findById(newArticle._id)
-        .populate("author", "_id name email");
-        
+            .findById(newArticle._id)
+            .populate("author", "_id name email");
+
         return res.status(201).json({
             message: "Article created Successfully",
             data: populatedArticle
         });
+
     } catch (error) {
+        // If something fails after images were uploaded,
+        // remove those images from Cloudinary.
+        for (const image of uploadedImages) {
+            try {
+                await deleteImage(image.publicId);
+            } catch (cleanupError) {
+                console.error(
+                    `Failed to clean up image ${image.publicId}`,
+                    cleanupError
+                );
+            }
+        }
+
         console.error(error);
         next(error);
     }
-}
+};
 
 const getArticles = async (req, res, next) => {
 
@@ -107,9 +131,9 @@ const getArticleById = async (req, res, next) => {
 }
 
 const updateArticle = async (req, res, next) => {
-    
-    try {
+    const uploadedImages = [];
 
+    try {
         const article = await articleModel.findById(req.params.id);
 
         if (!article) {
@@ -123,25 +147,153 @@ const updateArticle = async (req, res, next) => {
                 message: "You are not authorized to update this article"
             });
         }
-        const updatedArticle = await articleModel.findByIdAndUpdate(req.params.id, req.body, {
-            new: true,
-            runValidators: true
-        })
+
+        // Upload any new images to Cloudinary
+        if (req.files?.length) {
+            for (const file of req.files) {
+                const result = await uploadImage(file.buffer);
+
+                uploadedImages.push({
+                    url: result.secure_url,
+                    publicId: result.public_id
+                });
+            }
+        }
+
+        // Update normal article fields
+        if (req.body.title !== undefined) {
+            article.title = req.body.title;
+        }
+
+        if (req.body.content !== undefined) {
+            article.content = req.body.content;
+        }
+
+        if (req.body.category !== undefined) {
+            article.category = req.body.category;
+        }
+
+        // Add new images to existing images
+        if (uploadedImages.length) {
+            article.images.push(...uploadedImages);
+        }
+
+        await article.save();
 
         const populatedArticle = await articleModel
-        .findById(updatedArticle._id)
-        .populate("author", "_id name email")
-        .populate("comments.author", "_id name email");
-        
+            .findById(article._id)
+            .populate("author", "_id name email")
+            .populate("comments.author", "_id name email");
+
         return res.status(200).json({
             message: "Article Updated Successfully",
             data: populatedArticle
         });
+
+    } catch (error) {
+        // Clean up any Cloudinary images uploaded before the update failed
+        for (const image of uploadedImages) {
+            try {
+                await deleteImage(image.publicId);
+            } catch (cleanupError) {
+                console.error(
+                    `Failed to clean up image ${image.publicId}`,
+                    cleanupError
+                );
+            }
+        }
+
+        console.error(error);
+        next(error);
+    }
+};
+
+const removeArticleImages = async (req, res, next) => {
+    try {
+        const article = await articleModel.findById(req.params.id);
+
+        if (!article) {
+            return res.status(404).json({
+                message: "Article not found"
+            });
+        }
+
+        if (article.author.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                message: "You are not authorized to modify this article"
+            });
+        }
+
+        const { publicIds } = req.body;
+
+        // Find images that actually belong to this article
+        const imagesToDelete = article.images.filter(image =>
+            publicIds.includes(image.publicId)
+        );
+
+        if (imagesToDelete.length === 0) {
+            return res.status(404).json({
+                message: "None of the provided images were found in this article"
+            });
+        }
+
+        const deletedPublicIds = [];
+        const failedPublicIds = [];
+
+        // Try every image independently
+        for (const image of imagesToDelete) {
+            try {
+                const result = await deleteImage(image.publicId);
+
+                if (result.result === "not found") {
+                    // The image is already gone from Cloudinary.
+                    // Treat it as successfully deleted.
+                    deletedPublicIds.push(image.publicId);
+                } else {
+                    deletedPublicIds.push(image.publicId);
+                }
+
+            } catch (imageError) {
+                console.error(
+                    `Failed to delete image ${image.publicId} from Cloudinary`,
+                    imageError
+                );
+
+                failedPublicIds.push(image.publicId);
+            }
+        }
+
+        // Remove only images that were successfully deleted
+        // from Cloudinary.
+        if (deletedPublicIds.length > 0) {
+            article.images = article.images.filter(
+                image => !deletedPublicIds.includes(image.publicId)
+            );
+
+            await article.save();
+        }
+
+        // If some images failed, tell the client exactly which ones
+        if (failedPublicIds.length > 0) {
+            return res.status(207).json({
+                message: "Some images were deleted, but some failed",
+                deleted: deletedPublicIds,
+                failed: failedPublicIds,
+                data: article
+            });
+        }
+
+        return res.status(200).json({
+            message: "Article images deleted successfully",
+            deleted: deletedPublicIds,
+            data: article
+        });
+
     } catch (error) {
         console.error(error);
         next(error);
     }
-}
+};
 
 const addComment = async (req, res, next) => {
     try {
@@ -192,132 +344,44 @@ const deleteArticle = async (req, res, next) => {
             });
         }
 
-        const publicId = article.image?.publicId;
+        // Save the image public IDs before deleting anything
+        const publicIds = article.images.map(image => image.publicId);
 
-        // Delete article from MongoDB
+        const deletedPublicIds = [];
+        const failedPublicIds = [];
+
+        // Try to delete every image from Cloudinary
+        for (const publicId of publicIds) {
+            try {
+                await deleteImage(publicId);
+
+                deletedPublicIds.push(publicId);
+
+            } catch (imageError) {
+                console.error(
+                    `Failed to delete image ${publicId} from Cloudinary`,
+                    imageError
+                );
+
+                failedPublicIds.push(publicId);
+            }
+        }
+
+        // If any image could not be deleted from Cloudinary,
+        // keep the article in MongoDB so the deletion can be retried.
+        if (failedPublicIds.length > 0) {
+            return res.status(500).json({
+                message: "Article was not deleted because some images could not be removed",
+                deletedImages: deletedPublicIds,
+                failedImages: failedPublicIds
+            });
+        }
+
+        // All Cloudinary images were successfully deleted.
+        // Now delete the article from MongoDB.
         await article.deleteOne();
 
-        // Delete associated image from Cloudinary
-        if (publicId) {
-            const result = await deleteImage(publicId);
-
-            if (result.result === "not found") {
-                console.warn(
-                    `Article image ${publicId} was not found on Cloudinary`
-                );
-            }
-        }
-
         return res.status(204).send();
-
-    } catch (error) {
-        console.error(error);
-        next(error);
-    }
-};
-
-const removeArticleImage = async (req, res, next) => {
-    try {
-        const article = await articleModel.findById(req.params.id);
-
-        if (!article) {
-            return res.status(404).json({
-                message: "Article not found"
-            });
-        }
-
-        if (article.author.toString() !== req.user._id.toString()) {
-            return res.status(403).json({
-                message: "You are not authorized to modify this article"
-            });
-        }
-
-        if (!article.image?.publicId) {
-            return res.status(404).json({
-                message: "Article has no image"
-            });
-        }
-
-        const result = await deleteImage(article.image.publicId);
-
-        if (result.result === "not found") {
-            console.warn(`Image ${article.image.publicId} was not found on Cloudinary`);
-        }
-
-        article.image = undefined; //removes image from database
-
-        await article.save();
-
-        return res.status(200).json({
-            message: "Article image deleted successfully"
-        });
-
-    } catch (error) {
-        console.error(error);
-        next(error);
-    }
-};
-
-const updateArticleImage = async (req, res, next) => {
-    try {
-        const article = await articleModel.findById(req.params.id);
-
-        if (!article) {
-            return res.status(404).json({
-                message: "Article not found"
-            });
-        }
-
-        if (article.author.toString() !== req.user._id.toString()) {
-            return res.status(403).json({
-                message: "You are not authorized to modify this article"
-            });
-        }
-
-        if (!req.file) {
-            return res.status(400).json({
-                message: "Please provide a new image"
-            });
-        }
-
-        const oldPublicId = article.image?.publicId;
-
-        // 1. Upload the new image
-        const newImage = await uploadImage(req.file.buffer);
-
-        try {
-            // 2. Update MongoDB first
-            article.image = {
-                url: newImage.secure_url,
-                publicId: newImage.public_id
-            };
-
-            await article.save();
-
-        } catch (databaseError) {
-
-            // 3. MongoDB failed, so clean up the new Cloudinary image
-            await deleteImage(newImage.public_id);
-
-            throw databaseError;
-        }
-
-        // 4. MongoDB now points to the new image.
-        //    Delete the old image afterwards.
-        if (oldPublicId) {
-            const deleteResult = await deleteImage(oldPublicId);
-
-            if (deleteResult.result === "not found") {
-                console.warn(
-                    `Old image ${oldPublicId} was not found on Cloudinary`
-                );
-            }
-        }
-
-        return res.status(200).json({
-            message: "Article image updated successfully",
-            image: article.image
-        });
 
     } catch (error) {
         console.error(error);
@@ -332,6 +396,5 @@ module.exports = {
     updateArticle,
     addComment,
     deleteArticle,
-    removeArticleImage,
-    updateArticleImage
+    removeArticleImages,
 }

@@ -3,7 +3,6 @@ const Joi = require('joi');
 const postValidator = Joi.object({
     title: Joi.string().min(5).required(),
     content: Joi.string().min(20).required(),
-    
     category: Joi.string()
         .valid(
             "Technology",
@@ -15,12 +14,7 @@ const postValidator = Joi.object({
             "Sports",
             "Others"
         )
-        .required(),
-
-    image: Joi.object({
-        url: Joi.string().uri().required(),
-        publicId: Joi.string().required()
-    }).optional() 
+        .required()
 });
 
 const putValidator = Joi.object({
@@ -37,12 +31,14 @@ const putValidator = Joi.object({
             "Sports",
             "Others"
         )
-        .optional(),
-    
-    image: Joi.object({
-        url: Joi.string().uri().required(),
-        publicId: Joi.string().required()
-    }).optional()
+        .optional()
+});
+
+const deleteImagesValidator = Joi.object({
+    publicIds: Joi.array()
+        .items(Joi.string().required())
+        .min(1)
+        .required()
 });
 
 const commentValidator = Joi.object({
@@ -52,5 +48,6 @@ const commentValidator = Joi.object({
 module.exports = {
     postValidator,
     putValidator,
+    deleteImagesValidator,
     commentValidator
-}
+};

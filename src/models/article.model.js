@@ -33,14 +33,16 @@ const articleSchema = new mongoose.Schema({
         ]
     },
 
-    image: {
-        url: {
-            type: String
-        },
-        publicId: {
-            type: String
+    images: [
+        {
+            url: {
+                type: String
+            },
+            publicId: {
+                type: String
+            }
         }
-    },
+    ],
     comments: [
         {
             author: {
