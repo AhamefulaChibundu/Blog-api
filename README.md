@@ -57,7 +57,7 @@ GET https://blog-api-jf07.onrender.com/api/articles?category=Technology&search=n
 * Only authenticated users can create articles
 * Only the owner of an article can update it
 * Only the owner of an article can delete it
-* Only the owner of an article can update or delete its image
+* Only the owner of an article can add or delete its images
 * Only authenticated users can comment on articles
 * Only authenticated users can manage their profile picture
 
@@ -82,17 +82,17 @@ Each article image stores:
 
 * Secure image URL
 * Cloudinary public ID
-
 Supported operations:
-
-* Upload article images
-* Replace article images
-* Delete article images
-* Automatically remove old Cloudinary images when an article image is replaced
+* Upload multiple article images when creating an article
+* Add multiple new images to an existing article
+* Delete selected article images
+* Automatically remove associated Cloudinary images when an article image is deleted
 * Automatically remove associated Cloudinary images when an article is deleted
 * Prevent unauthorized users from modifying another user's article images
 
 The Cloudinary upload functionality uses Multer's `memoryStorage`, allowing image buffers to be uploaded directly to Cloudinary without permanently storing uploaded files on the server.
+
+Article image uploads support up to **10 images per request**, with a maximum file size of **2MB per image**.
 
 ## User Profile Pictures
 
@@ -264,15 +264,15 @@ You can obtain a token by logging in.
 
 ## Articles
 
-| Method | Endpoint                  | Description                                    |
-| ------ | ------------------------- | ---------------------------------------------- |
-| POST   | `/api/articles`           | Create an article *(Authenticated)*            |
-| GET    | `/api/articles`           | Retrieve all articles                          |
-| GET    | `/api/articles/:id`       | Retrieve a single article                      |
-| PUT    | `/api/articles/:id`       | Update article *(Owner only)*                  |
-| DELETE | `/api/articles/:id`       | Delete article *(Owner only)*                  |
-| PUT    | `/api/articles/:id/image` | Upload or replace article image *(Owner only)* |
-| DELETE | `/api/articles/:id/image` | Delete article image *(Owner only)*            |
+| Method | Endpoint                   | Description                                   |
+| ------ | -------------------------- | --------------------------------------------- |
+| POST   | `/api/articles`            | Create an article *(Authenticated)*           |
+| GET    | `/api/articles`            | Retrieve all articles                         |
+| GET    | `/api/articles/:id`        | Retrieve a single article                     |
+| PUT    | `/api/articles/:id`        | Update article *(Owner only)*                 |
+| DELETE | `/api/articles/:id`        | Delete article *(Owner only)*                 |
+| PUT    | `/api/articles/:id`        | Add article images *(Owner only)*             |
+| DELETE | `/api/articles/:id/images` | Delete selected article images *(Owner only)* |
 
 ---
 
@@ -351,6 +351,21 @@ GET /api/articles?category=Technology&search=node&page=1&limit=5
 
 > **Note:** The authenticated user is automatically assigned as the article author.
 
+Articles can also be created with multiple images using `multipart/form-data`.
+
+Form-data fields:
+
+```text
+title: Getting Started with Express
+content: Express.js is a minimal and flexible Node.js framework for building web applications...
+category: Programming
+images: <image file>
+images: <image file>
+images: <image file>
+```
+
+Up to 10 images can be uploaded in a single request.
+
 ## Add Comment
 
 ```json
@@ -383,10 +398,12 @@ image: <image file>
 
 The image is uploaded to Cloudinary and the resulting image URL and public ID are stored in the user's MongoDB document.
 
-## Upload or Replace Article Image
+## Add Article Images
+
+New images can be added to an existing article using:
 
 ```http
-PUT /api/articles/:id/image
+PUT /api/articles/:id
 ```
 
 Header:
@@ -398,10 +415,41 @@ Authorization: Bearer YOUR_JWT_TOKEN
 Form-data:
 
 ```text
-image: <image file>
+images: <image file>
+images: <image file>
+images: <image file>
 ```
 
 Only the article owner can perform this operation.
+
+Existing article images are retained when new images are uploaded.
+
+## Delete Selected Article Images
+
+```http
+DELETE /api/articles/:id/images
+```
+
+Header:
+
+```http
+Authorization: Bearer YOUR_JWT_TOKEN
+```
+
+Request body:
+
+```json
+{
+  "publicIds": [
+    "uploads/image1",
+    "uploads/image2"
+  ]
+}
+```
+
+Only the article owner can perform this operation.
+
+Only the selected images belonging to the article are removed.
 
 ---
 
@@ -409,14 +457,22 @@ Only the article owner can perform this operation.
 
 Images are uploaded to Cloudinary while their references are stored in MongoDB.
 
+Each article can contain multiple images.
+
 The application stores:
 
 ```json
 {
-  "image": {
-    "url": "https://res.cloudinary.com/...",
-    "publicId": "uploads/example"
-  }
+  "images": [
+    {
+      "url": "https://res.cloudinary.com/...",
+      "publicId": "uploads/example1"
+    },
+    {
+      "url": "https://res.cloudinary.com/...",
+      "publicId": "uploads/example2"
+    }
+  ]
 }
 ```
 
@@ -424,10 +480,13 @@ The `publicId` is used to identify and delete the corresponding image from Cloud
 
 The application also handles image cleanup when:
 
-* An article image is replaced
 * An article image is deleted
-* An article containing an image is deleted
+
+* An article containing images is deleted
+
 * A profile picture is replaced
+
+If multiple images are uploaded and a database operation fails after the Cloudinary uploads, the uploaded images are also cleaned up to prevent orphaned files.
 
 This helps prevent unnecessary orphaned files in Cloudinary.
 
@@ -435,16 +494,17 @@ This helps prevent unnecessary orphaned files in Cloudinary.
 
 # HTTP Status Codes
 
-| Status Code | Description                             |
-| ----------- | --------------------------------------- |
-| 200         | Request successful                      |
-| 201         | Resource created successfully           |
-| 204         | Resource deleted successfully           |
-| 400         | Bad request / Validation error          |
-| 401         | Unauthorized / Invalid or missing token |
-| 403         | Forbidden / User not authorized         |
-| 404         | Resource not found                      |
-| 500         | Internal server error                   |
+| Status Code | Description                                         |
+| ----------- | --------------------------------------------------- |
+| 200         | Request successful                                  |
+| 201         | Resource created successfully                       |
+| 204         | Resource deleted successfully                       |
+| 207         | Some image operations succeeded while others failed |
+| 400         | Bad request / Validation error                      |
+| 401         | Unauthorized / Invalid or missing token             |
+| 403         | Forbidden / User not authorized                     |
+| 404         | Resource not found                                  |
+| 500         | Internal server error                               |
 
 ---
 
